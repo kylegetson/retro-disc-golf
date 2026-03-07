@@ -1,0 +1,14 @@
+{
+  "tracks": [
+    {
+      "id": "fairway-fury",
+      "label": "Fairway Fury",
+      "file": "Fairway_Fury.mp3"
+    },
+    {
+      "id": "disc-golf-theme",
+      "label": "Disc Golf Theme",
+      "file": "disc-golf-theme.mp3"
+    }
+  ]
+}

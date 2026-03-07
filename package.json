@@ -1,0 +1,8 @@
+{
+  "name": "retro-disc-golf",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8080"
+  }
+}
