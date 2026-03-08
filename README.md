@@ -53,6 +53,11 @@ npm start
 
 This starts a local HTTP server. Open the provided URL in your browser to play.
 
+## Dad Joke
+
+> Why did the disc golfer bring a ladder to the course?
+> Because he heard the best scores are always under par!
+
 ## Tech Stack
 
 - Vanilla JavaScript (ES6 modules)
