@@ -409,11 +409,15 @@ class RetroDiscGolfGame {
     context.lineCap = "round";
     context.lineJoin = "round";
 
+    const segments = hole.fairwaySegments;
+
     context.strokeStyle = "#4f6d2f";
     context.lineWidth = hole.fairwayWidth + 10;
     context.beginPath();
-    context.moveTo(hole.tee.x, hole.tee.y);
-    context.quadraticCurveTo(hole.fairwayControl.x, hole.fairwayControl.y, hole.basket.x, hole.basket.y);
+    context.moveTo(segments[0].start.x, segments[0].start.y);
+    for (const seg of segments) {
+      context.quadraticCurveTo(seg.control.x, seg.control.y, seg.end.x, seg.end.y);
+    }
     context.stroke();
 
     context.strokeStyle = "#7ca34c";

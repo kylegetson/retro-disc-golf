@@ -4,7 +4,6 @@ export const WORLD_HEIGHT = 300;
 const HOLE_LENGTHS = {
   3: [150, 205],
   4: [205, 265],
-  5: [255, 320],
 };
 
 export function generateCourse(holeCount = 3, seed = Date.now()) {
@@ -19,13 +18,28 @@ export function generateCourse(holeCount = 3, seed = Date.now()) {
 }
 
 function generateHole(index, random) {
-  const par = randomInt(random, 3, 5);
+  const par = randomInt(random, 3, 4);
   const [minLength, maxLength] = HOLE_LENGTHS[par];
   const teeBasket = pickTeeAndBasket(random, minLength, maxLength);
   const fairwayWidth = randomInt(random, 24, 36);
-  const fairwayControl = buildFairwayControl(teeBasket.tee, teeBasket.basket, random);
-  const waters = generateWaterHazards(random, teeBasket.tee, teeBasket.basket, fairwayControl, fairwayWidth);
-  const trees = generateTrees(random, teeBasket.tee, teeBasket.basket, fairwayControl, fairwayWidth, waters);
+
+  const doglegChance = par === 3 ? 0.15 : 0.45;
+  const isDogleg = random() < doglegChance;
+
+  let fairwaySegments;
+  if (isDogleg) {
+    fairwaySegments = buildDoglegFairway(teeBasket.tee, teeBasket.basket, random);
+  } else {
+    const control = buildFairwayControl(teeBasket.tee, teeBasket.basket, random);
+    fairwaySegments = [{ start: teeBasket.tee, control, end: teeBasket.basket }];
+  }
+
+  const waters = generateWaterHazards(random, teeBasket.tee, teeBasket.basket, fairwaySegments, fairwayWidth);
+  const trees = generateTrees(random, teeBasket.tee, teeBasket.basket, fairwaySegments, fairwayWidth, waters);
+
+  if (isDogleg) {
+    addBlockerTrees(random, teeBasket.tee, teeBasket.basket, fairwaySegments, trees, waters);
+  }
 
   return {
     index,
@@ -33,7 +47,7 @@ function generateHole(index, random) {
     tee: teeBasket.tee,
     basket: teeBasket.basket,
     fairwayWidth,
-    fairwayControl,
+    fairwaySegments,
     trees,
     waters,
     paletteShift: randomInt(random, 0, 3),
@@ -78,20 +92,64 @@ function buildFairwayControl(tee, basket, random) {
   };
 }
 
-function generateWaterHazards(random, tee, basket, fairwayControl, fairwayWidth) {
+function buildDoglegFairway(tee, basket, random) {
+  const dir = normalize({ x: basket.x - tee.x, y: basket.y - tee.y });
+  const side = { x: -dir.y, y: dir.x };
+  const dist = distance(tee, basket);
+
+  const t = randomRange(random, 0.35, 0.55);
+  const offsetMag = randomRange(random, dist * 0.3, dist * 0.5);
+  const offsetSign = random() > 0.5 ? 1 : -1;
+
+  const waypoint = {
+    x: clamp(tee.x + dir.x * dist * t + side.x * offsetMag * offsetSign, 40, WORLD_WIDTH - 40),
+    y: clamp(tee.y + dir.y * dist * t + side.y * offsetMag * offsetSign, 40, WORLD_HEIGHT - 40),
+  };
+
+  const ctrl1 = buildFairwayControl(tee, waypoint, random);
+  const ctrl2 = buildFairwayControl(waypoint, basket, random);
+
+  return [
+    { start: tee, control: ctrl1, end: waypoint },
+    { start: waypoint, control: ctrl2, end: basket },
+  ];
+}
+
+function addBlockerTrees(random, tee, basket, fairwaySegments, trees, waters) {
+  const dir = normalize({ x: basket.x - tee.x, y: basket.y - tee.y });
+  const dist = distance(tee, basket);
+  const count = randomInt(random, 3, 6);
+
+  for (let i = 0; i < count; i += 1) {
+    const t = randomRange(random, 0.25, 0.75);
+    const tree = {
+      x: tee.x + dir.x * dist * t + randomRange(random, -10, 10),
+      y: tee.y + dir.y * dist * t + randomRange(random, -10, 10),
+      radius: randomInt(random, 5, 7),
+    };
+
+    if (distance(tree, tee) < 18 || distance(tree, basket) < 18) continue;
+    if (waters.some((w) => pointInsideEllipse(tree, w))) continue;
+    if (trees.some((other) => distance(tree, other) < tree.radius + other.radius + 8)) continue;
+    if (distanceToFairway(fairwaySegments, tree) < 16) continue;
+
+    trees.push(tree);
+  }
+}
+
+function generateWaterHazards(random, tee, basket, fairwaySegments, fairwayWidth) {
   const hazardCount = randomInt(random, 0, 2);
   const waters = [];
 
   for (let index = 0; index < hazardCount; index += 1) {
     for (let attempt = 0; attempt < 120; attempt += 1) {
       const t = randomRange(random, 0.18, 0.82);
-      const fairwayPoint = sampleQuadratic(tee, fairwayControl, basket, t);
-      const tangent = quadraticTangent(tee, fairwayControl, basket, t);
+      const { point, tangent } = sampleFairwayAt(fairwaySegments, t);
       const side = normalize({ x: -tangent.y, y: tangent.x });
       const offset = randomRange(random, fairwayWidth * 0.3, fairwayWidth * 1.1) * (random() > 0.5 ? 1 : -1);
       const candidate = {
-        x: fairwayPoint.x + side.x * offset,
-        y: fairwayPoint.y + side.y * offset,
+        x: point.x + side.x * offset,
+        y: point.y + side.y * offset,
         rx: randomInt(random, 16, 28),
         ry: randomInt(random, 10, 22),
       };
@@ -116,7 +174,7 @@ function generateWaterHazards(random, tee, basket, fairwayControl, fairwayWidth)
   return waters;
 }
 
-function generateTrees(random, tee, basket, fairwayControl, fairwayWidth, waters) {
+function generateTrees(random, tee, basket, fairwaySegments, fairwayWidth, waters) {
   const treeCount = randomInt(random, 5, 15);
   const trees = [];
 
@@ -136,10 +194,10 @@ function generateTrees(random, tee, basket, fairwayControl, fairwayWidth, waters
         continue;
       }
 
-      const distanceToFairway = distanceToQuadratic(tee, fairwayControl, basket, tree);
+      const fairwayDist = distanceToFairway(fairwaySegments, tree);
       const laneAllowance = index % 4 === 0 ? fairwayWidth * 0.35 : fairwayWidth * 0.55;
 
-      if (distanceToFairway < laneAllowance) {
+      if (fairwayDist < laneAllowance) {
         continue;
       }
 
@@ -153,6 +211,30 @@ function generateTrees(random, tee, basket, fairwayControl, fairwayWidth, waters
   }
 
   return trees;
+}
+
+function sampleFairwayAt(segments, t) {
+  const totalSegments = segments.length;
+  const scaled = t * totalSegments;
+  const segIndex = Math.min(Math.floor(scaled), totalSegments - 1);
+  const localT = scaled - segIndex;
+  const seg = segments[segIndex];
+
+  return {
+    point: sampleQuadratic(seg.start, seg.control, seg.end, localT),
+    tangent: normalize(quadraticTangent(seg.start, seg.control, seg.end, localT)),
+  };
+}
+
+function distanceToFairway(segments, point) {
+  let minDist = Infinity;
+
+  for (const seg of segments) {
+    const d = distanceToQuadratic(seg.start, seg.control, seg.end, point);
+    if (d < minDist) minDist = d;
+  }
+
+  return minDist;
 }
 
 function distanceToQuadratic(p0, p1, p2, point) {
