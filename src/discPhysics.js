@@ -28,7 +28,10 @@ export function planFlight({ start, aim, power, accuracy, disc, hole }) {
   });
   const path = buildPath(start, control, intendedEnd, 46);
   const treeCollision = findTreeCollision(path, hole.trees);
-  const basketCrossing = findBasketCrossing(path, hole.basket, BASKET_CATCH_RADIUS);
+  const magnetActive = isBestDiscForDistance(disc, distanceBetween(start, hole.basket));
+  const basketCrossing = magnetActive
+    ? findBasketCrossing(path, hole.basket, BASKET_CATCH_RADIUS)
+    : null;
 
   if (basketCrossing && (!treeCollision || basketCrossing.index < treeCollision.index)) {
     const madePath = path.slice(0, basketCrossing.index);
@@ -223,6 +226,18 @@ function findSafeDrop(point, water, hole) {
     x: water.x + water.rx + 14,
     y: water.y,
   });
+}
+
+const DISC_DISTANCE_THRESHOLDS = [
+  { id: "putter", maxReach: 72 },
+  { id: "mid", maxReach: 92 },
+  { id: "fairway", maxReach: 115 },
+  { id: "driver", maxReach: 130 },
+];
+
+function isBestDiscForDistance(disc, distance) {
+  const best = DISC_DISTANCE_THRESHOLDS.find((d) => distance <= d.maxReach);
+  return best ? disc.id === best.id : disc.id === "driver";
 }
 
 function closestPointOnSegment(start, end, point) {
