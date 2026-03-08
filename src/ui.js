@@ -73,13 +73,15 @@ export class UI {
     this.refs.meterSweetSpot.style.width = `${meterState.sweetSpotWidth * 100}%`;
   }
 
-  showMessage(title, body) {
+  showMessage(title, body, options = {}) {
     this.refs.messageTitle.textContent = title;
     this.refs.messageBody.textContent = body;
+    this.refs.messageBox.classList.toggle("centered", Boolean(options.centered));
     this.refs.messageBox.classList.remove("hidden");
   }
 
   hideMessage() {
+    this.refs.messageBox.classList.remove("centered");
     this.refs.messageBox.classList.add("hidden");
   }
 

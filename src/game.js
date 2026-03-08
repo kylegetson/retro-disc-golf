@@ -237,7 +237,7 @@ class RetroDiscGolfGame {
     if (outcome.holedOut) {
       this.sound.hole();
       const scoreText = scoreName(this.holeResults[this.currentHoleIndex].strokes - this.currentHole.par);
-      this.ui.showMessage("Chains", `${scoreText}. Hole complete.`);
+      this.ui.showMessage("Chains", `${scoreText}. Hole complete.`, { centered: true });
       this.transitionAt = performance.now() + HOLE_TRANSITION_MS;
       this.refreshHud(`${scoreText}. Walking to the next tee...`);
       return;

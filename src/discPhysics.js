@@ -1,6 +1,7 @@
 import { WORLD_HEIGHT, WORLD_WIDTH } from "./courseGenerator.js";
 
 const TREE_COLLISION_PADDING = 3;
+const BASKET_CATCH_RADIUS = 14;
 
 export function planFlight({ start, aim, power, accuracy, disc, hole }) {
   const direction = normalize({
@@ -27,6 +28,24 @@ export function planFlight({ start, aim, power, accuracy, disc, hole }) {
   });
   const path = buildPath(start, control, intendedEnd, 46);
   const treeCollision = findTreeCollision(path, hole.trees);
+  const basketCrossing = findBasketCrossing(path, hole.basket, BASKET_CATCH_RADIUS);
+
+  if (basketCrossing && (!treeCollision || basketCrossing.index < treeCollision.index)) {
+    const madePath = path.slice(0, basketCrossing.index);
+    madePath.push(hole.basket);
+
+    return {
+      path: madePath,
+      displayPoint: hole.basket,
+      resolvedLie: hole.basket,
+      penalties: 0,
+      event: "chains",
+      holedOut: true,
+      distance: travelDistance,
+      control,
+      end: hole.basket,
+    };
+  }
 
   if (treeCollision) {
     const drop = clampPoint({
@@ -64,15 +83,13 @@ export function planFlight({ start, aim, power, accuracy, disc, hole }) {
     };
   }
 
-  const holedOut = distanceBetween(intendedEnd, hole.basket) <= 9;
-
   return {
     path,
     displayPoint: intendedEnd,
     resolvedLie: intendedEnd,
     penalties: 0,
-    event: holedOut ? "chains" : "land",
-    holedOut,
+    event: "land",
+    holedOut: false,
     distance: travelDistance,
     control,
     end: intendedEnd,
@@ -164,6 +181,23 @@ function findTreeCollision(path, trees) {
   return null;
 }
 
+function findBasketCrossing(path, basket, radius) {
+  for (let pathIndex = 1; pathIndex < path.length; pathIndex += 1) {
+    const previousPoint = path[pathIndex - 1];
+    const point = path[pathIndex];
+    const closestPoint = closestPointOnSegment(previousPoint, point, basket);
+
+    if (distanceBetween(closestPoint, basket) <= radius) {
+      return {
+        index: pathIndex,
+        point: closestPoint,
+      };
+    }
+  }
+
+  return null;
+}
+
 function findSafeDrop(point, water, hole) {
   const direction = normalize({
     x: point.x - water.x,
@@ -189,4 +223,22 @@ function findSafeDrop(point, water, hole) {
     x: water.x + water.rx + 14,
     y: water.y,
   });
+}
+
+function closestPointOnSegment(start, end, point) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const segmentLengthSquared = dx * dx + dy * dy;
+
+  if (segmentLengthSquared === 0) {
+    return start;
+  }
+
+  const projection = ((point.x - start.x) * dx + (point.y - start.y) * dy) / segmentLengthSquared;
+  const clampedProjection = clamp(projection, 0, 1);
+
+  return {
+    x: start.x + dx * clampedProjection,
+    y: start.y + dy * clampedProjection,
+  };
 }

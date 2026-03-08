@@ -9,6 +9,11 @@
       "id": "disc-golf-theme",
       "label": "Disc Golf Theme",
       "file": "disc-golf-theme.mp3"
+    },
+    {
+      "id": "70s-style",
+      "label": "70s Style",
+      "file": "70s-Style.mp3"
     }
   ]
 }

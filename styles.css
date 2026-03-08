@@ -70,9 +70,9 @@ body::before {
 
 .top-panel {
   display: grid;
-  grid-template-columns: minmax(220px, auto) minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 1fr) auto;
   gap: 12px;
-  align-items: end;
+  align-items: center;
   padding: 10px 12px;
 }
 
@@ -85,17 +85,12 @@ body::before {
   letter-spacing: 0.08em;
 }
 
-.brand-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
+.header-controls,
 .brand-controls {
   display: flex;
   align-items: end;
   gap: 8px;
+  justify-content: flex-end;
 }
 
 .track-picker {
@@ -221,6 +216,17 @@ body::before {
 
 .message-box.hidden {
   display: none;
+}
+
+.message-box.centered {
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  width: min(360px, calc(100% - 32px));
+  max-width: none;
+  text-align: center;
+  transform: translate(-50%, -50%);
 }
 
 .message-box h2 {
@@ -423,7 +429,7 @@ body::before {
     grid-template-columns: 1fr;
   }
 
-  .brand-row,
+  .header-controls,
   .brand-controls {
     flex-direction: column;
     align-items: stretch;
@@ -469,6 +475,10 @@ body::before {
 
   .message-box {
     max-width: 280px;
+  }
+
+  .message-box.centered {
+    width: min(300px, calc(100% - 28px));
   }
 
   .disc-button {
