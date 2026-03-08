@@ -58,6 +58,9 @@ This starts a local HTTP server. Open the provided URL in your browser to play.
 > Why did the disc golfer bring a ladder to the course?
 > Because he heard the best scores are always under par!
 
+> What do you call a disc golfer who plays in 8-bit graphics?
+> A pixel-putter!
+
 ## Tech Stack
 
 - Vanilla JavaScript (ES6 modules)
